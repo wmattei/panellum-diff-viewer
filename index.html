@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pannellum Side-by-Side Diff Viewer</title>
+    <script src="https://cdn.jsdelivr.net/npm/pannellum/build/pannellum.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/pannellum/build/pannellum.css"
+    />
+    <script>
+      const LEFT_IMAGE =
+        "https://media.peek.us/spaces/675852209a1fa3abdf9fc369/ENTRYWAY.jpg";
+      const RIGHT_IMAGE =
+        "https://media.peek.us/spaces/675852209a1fa3abdf9fc369/backup/2024/12/17/21/52/ENTRYWAY.jpg";
+
+      window.addEventListener("DOMContentLoaded", () => {
+        // Initialize the Pannellum viewers
+        const viewer1 = pannellum.viewer("viewer1", {
+          type: "equirectangular",
+          panorama: LEFT_IMAGE,
+          autoLoad: true,
+          friction: 1,
+        });
+
+        const viewer2 = pannellum.viewer("viewer2", {
+          type: "equirectangular",
+          panorama: RIGHT_IMAGE,
+          autoLoad: true,
+          friction: 1,
+        });
+
+        // Drag functionality for the diff line
+        const dragLine = document.getElementById("dragLine");
+        const viewer2Element = document.getElementById("viewer2");
+        let isDragging = false;
+
+        // Synchronize view parameters between viewers
+        function synchronizeViewers(sourceViewer, targetViewer) {
+          sourceViewer.on("animatefinished", (e) => {
+            //   console.log(e);
+            const pitch = sourceViewer.getPitch();
+            const yaw = sourceViewer.getYaw();
+            const hfov = sourceViewer.getHfov();
+
+            // Apply the same view parameters to the target viewer
+            targetViewer.setPitch(pitch, false);
+            targetViewer.setYaw(yaw, false);
+            targetViewer.setHfov(hfov, false);
+          });
+        }
+
+        // Sync viewer1 with viewer2 and vice versa
+        synchronizeViewers(viewer1, viewer2);
+        synchronizeViewers(viewer2, viewer1);
+
+        dragLine.addEventListener("mousedown", () => {
+          isDragging = true;
+          document.body.style.cursor = "ew-resize";
+        });
+
+        window.addEventListener("mousemove", (e) => {
+          if (!isDragging) return;
+
+          const linePosition = Math.max(
+            0,
+            Math.min(e.clientX, window.innerWidth)
+          );
+          dragLine.style.left = `${linePosition}px`;
+          viewer2Element.style.clipPath = `inset(0 0 0 ${linePosition}px)`;
+        });
+
+        window.addEventListener("mouseup", () => {
+          if (isDragging) {
+            isDragging = false;
+            document.body.style.cursor = "default";
+          }
+        });
+      });
+    </script>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+      }
+      .viewer-wrapper {
+        position: relative;
+        width: 100%;
+        height: 100vh;
+      }
+      #viewer1,
+      #viewer2 {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+      }
+      #viewer2 {
+        clip-path: inset(
+          0 0 0 50%
+        ); /* Initially show half of the second viewer */
+      }
+      .drag-line {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 8px;
+        background: rgb(4, 210, 198);
+        cursor: ew-resize;
+        z-index: 10;
+        left: 50%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="viewer1" class="viewer-container" style="left: 0"></div>
+    <div id="viewer2" class="viewer-container" style="right: 0"></div>
+    <div class="drag-line" id="dragLine" style="left: 50%"></div>
+  </body>
+</html>
